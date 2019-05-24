@@ -1,0 +1,49 @@
+#!/bin/bash
+
+TARGET_DIR="${HOME}/docker/"
+
+#make the up command detached
+if [[ "${@}" == "up" ]]
+then
+    COMMAND="up -d"
+else
+    COMMAND="${@}"
+fi
+
+#handle traefik
+TRAEFIK=`docker container ls | grep traefik | grep -oE "^[0-9a-f]+"`
+if [[ "${TRAEFIK}" == "" ]] 
+then
+    if [[ "${@}" == "up" ]] || [[ "${@}" == "start" ]]
+    then
+        docker run -d --rm --name router -v /var/run/docker.sock:/var/run/docker.sock --network public -p 80:80 -p 8080:8080 traefik:1.7-alpine --api --docker --docker.exposedbydefault=false
+    fi
+elif [[ "${TRAEFIK}" != "" ]] && [[ "${@}" == "down" ]]
+then
+    docker kill "${TRAEFIK}" > /dev/null
+fi
+
+#ensure target (still) exists.
+if [[ ! -d "${TARGET_DIR}" ]]
+then
+    echo "Unable to find ${TARGET_DIR}. Does the directory exist?"
+    exit 1
+fi
+
+#ensure target ends with trailing slash to prevent issues
+if [[ "${TARGET_DIR}" != */ ]]
+then
+    TARGET_DIR="${TARGET_DIR}/"
+fi
+cd "${TARGET_DIR}"
+
+shopt -s globstar
+shopt -s extglob
+for RESULT in **/docker-compose.y?(a)ml
+do
+    #skip vendor folders.
+    if [[ "${RESULT}" != *"/vendor/"* ]]
+    then
+       eval "docker-compose -f ${TARGET_DIR}${RESULT} ${COMMAND}"
+    fi
+done
