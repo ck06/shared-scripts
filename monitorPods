@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# save start position of cursor
+tput sc
+
+# cap the loop to a certain amount of calls
+# 3 second delay for 100 runs = 5 minutes.
+for ((i=0; i<= 100; i++))
+do
+    # fetch required variables
+    STATUS=`helm status "$1"`
+    START=`echo "$STATUS" | grep -nF "v1/Pod" | grep -oE "^[0-9]{1,}"`
+    END=`echo "$STATUS" | grep -nF "v1/Secret" | grep -oE "^[0-9]{1,}"`
+    END=`echo $(($END-2))` # compensate for the extra line offset
+    DIFF=`echo $(($END-$START))`
+
+    # clear the screen
+    tput ed
+    
+    # echo only the relevant portion 
+    echo "$STATUS" | head -n $END | tail -n $DIFF
+
+    # dont spam the service too hard
+    sleep 3
+
+    # move cursor back to previously saved start position
+    tput rc
+done
+
+echo "monitor auto-terminated to prevent system overload"
