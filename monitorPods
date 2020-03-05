@@ -1,12 +1,17 @@
 #!/bin/bash
 
+# clean the screen before running
+clear
+
 # save start position of cursor
 tput sc
 
 # cap the loop to a certain amount of calls
-# 3 second delay for 100 runs = 5 minutes.
-for ((i=0; i<= 100; i++))
+for ((i=0; i<= 300; i++))
 do
+    # move cursor back to previously saved start position
+    tput rc
+
     # fetch required variables
     STATUS=`helm status "$1"`
     START=`echo "$STATUS" | grep -nF "v1/Pod" | grep -oE "^[0-9]{1,}"`
@@ -22,9 +27,6 @@ do
 
     # dont spam the service too hard
     sleep 3
-
-    # move cursor back to previously saved start position
-    tput rc
 done
 
 echo "monitor auto-terminated to prevent system overload"
